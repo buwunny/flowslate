@@ -115,6 +115,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 jsPlumb.deleteConnection(info.connection);
                 return;
             }
+            info.connection.bind("click", function (conn, originalEvent) {
+                if (selectedConnection) {
+                    selectedConnection.setPaintStyle({ stroke: "black", strokeWidth: 2 });
+                }
+                selectedConnection = conn;
+                conn.setPaintStyle({ stroke: "red", strokeWidth: 4 });
+            });
             console.log("Connection established from", info.sourceId, "to", info.targetId);
         });
 
@@ -125,5 +132,19 @@ document.addEventListener("DOMContentLoaded", function () {
         jsPlumb.bind("connectionDetached", function (info) {
             console.log("Connection detached", info);
         });
+    });
+    
+    document.addEventListener("mousedown", function (e) {
+        if (selectedConnection) {
+            selectedConnection.setPaintStyle({ stroke: "black", strokeWidth: 2 });
+            selectedConnection = null;
+        }
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Delete" && selectedConnection) {
+            jsPlumb.deleteConnection(selectedConnection);
+            selectedConnection = null;
+        }
     });
 });
