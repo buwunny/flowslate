@@ -49,6 +49,30 @@
             margin-left: 56px;
             padding: 16px;
         }
+        .diagram-node {
+            position: absolute;
+            min-width: 60px;
+            min-height: 60px;
+            box-sizing: border-box;
+            padding: 5px;
+            width: auto;
+            height: auto;
+            outline: 1.5px solid #0078d4;
+            font-size: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            background: transparent;
+            border-radius: 10px;
+        }
+        .connection-label-editable {
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #0078d4;
+        }
     </style>
     <link rel="stylesheet" href="static/fontawesome/css/all.min.css">
     <script src="static/jsplumb/jsplumb.browser-ui.umd.js"></script>
@@ -56,24 +80,22 @@
 
 <body style="background-color: #555;">
     <div class="toolbar-top">
-        <button class="toolbar-button" title="New">&#x1F4C4;</button>
-        <button class="toolbar-button" title="Save">&#x1F4BE;</button>
-        <button class="toolbar-button" title="Settings">&#9881;</button>
+        <!-- <button class="toolbar-button" title="New"><i class="fas fa-file"></i></button>
+        <button class="toolbar-button" title="Save"><i class="fas fa-save"></i></button>
+        <button class="toolbar-button" title="Settings"><i class="fas fa-cog"></i></button> -->
         <span style="margin-left:16px; font-weight:bold;">flowslate</span>
         <div style="margin-left:auto; display:flex; gap:4px;">
-            <button class="toolbar-button" id="zoom-out" title="Zoom Out"><i class="fas fa-minus"></i></button>
-            <button class="toolbar-button" id="zoom-in" title="Zoom In"><i class="fas fa-plus"></i></button>
+            <button class="toolbar-button" id="zoom-out" title="Zoom Out"><i class="fas fa-magnifying-glass-minus"></i></button>
+            <button class="toolbar-button" id="zoom-in" title="Zoom In"><i class="fas fa-magnifying-glass-plus"></i></button>
             <button class="toolbar-button" id="zoom-reset" title="Reset Zoom"><i class="fas fa-expand"></i></button>
         </div>
     </div>
     <div class="toolbar-left">
-        <button class="toolbar-button" title="Select">&#x2702;</button>
-        <button class="toolbar-button" title="Move">&#x2194;</button>
-        <button class="toolbar-button" title="Add Node">&#x2795;</button>
+        <button class="toolbar-button" title="Add Node"><i class="fas fa-plus"></i></button>
+        <button class="toolbar-button" title="Add Icon Node"><i class="fas fa-icons"></i></button>
     </div>
     <div id="main-content" class="main-content">
         <div id="canvas" class="canvas-resizeable" style="width:90vw;height:90vh;position:relative;background-color:#fff;"></div>
-        <!-- Advanced Searchable Icon Picker Modal -->
         <div id="icon-picker-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.2);z-index:2000;align-items:center;justify-content:center;">
             <div style="background:#fff;padding:24px 32px 16px 32px;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:12px;min-width:340px;max-width:480px;max-height:80vh;">
                 <div style="display:flex;align-items:center;gap:8px;">

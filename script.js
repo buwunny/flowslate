@@ -1,4 +1,3 @@
-
 // =====================
 // Constants & DOM Elements
 // =====================
@@ -8,6 +7,7 @@ const ZOOM_STEP = 0.1;
 let currentZoom = 1;
 let offsetX = 0;
 let offsetY = 0;
+let selectedConnection;
 
 const container = document.getElementById('canvas');
 const mainContent = document.getElementById('main-content');
@@ -158,20 +158,6 @@ function createNode(id, x, y, iconClass) {
     node.style.position = "absolute";
     node.style.left = x + "px";
     node.style.top = y + "px";
-    node.style.minWidth = "60px";
-    node.style.minHeight = "60px";
-    node.style.boxSizing = "border-box";
-    node.style.padding = "5px";
-    node.style.width = "auto";
-    node.style.height = "auto";
-    node.style.outline = "1.5px solid #0078d4";
-    node.style.fontSize = "18px";
-    node.style.display = "flex";
-    node.style.flexDirection = "column";
-    node.style.alignItems = "center";
-    node.style.justifyContent = "center";
-    node.style.cursor = "move";
-    node.style.background = "#transparent";
 
 
     const icon = document.createElement("i");
@@ -189,9 +175,11 @@ function createNode(id, x, y, iconClass) {
     label.style.marginTop = "4px";
     label.style.width = "100%";
     label.style.textAlign = "center";
-    label.style.wordBreak = "break-word";
-    label.style.whiteSpace = "normal";
-    label.style.overflowWrap = "break-word";
+    label.style.wordBreak = "normal";
+    label.style.whiteSpace = "nowrap";
+    label.style.overflowWrap = "normal";
+    label.style.textOverflow = "ellipsis";
+    label.style.overflow = "hidden";
     label.style.position = "static";
     label.style.bottom = "unset";
     label.style.left = "unset";
@@ -252,6 +240,18 @@ function createNode(id, x, y, iconClass) {
     }
 
     node.addEventListener('mousedown', function(e) {
+        document.querySelectorAll('.diagram-node').forEach(n => {
+            n.style.outline = "1.5px solid #0078d4";
+            removeResizeHandles(n);
+            n.classList.remove('selected-diagram-node');
+        });
+        if (selectedConnection) {
+            selectedConnection.setPaintStyle({ stroke: "#000000ff", strokeWidth: 2 });
+            selectedConnection.setHoverPaintStyle({ stroke: "#000000ff", strokeWidth: 2 });
+            selectedConnection = null;
+            jsPlumbInstance.repaintEverything();
+        }
+
         if (e.button === 0 && !e.target.classList.contains('resize-handle')) {
             if (node.style.outline !== 'none') {
                 hideSelection();
@@ -307,7 +307,10 @@ document.addEventListener('keydown', function(e) {
         if (selected) {
             jsPlumbInstance.removeAllEndpoints(selected);
             selected.remove();
-            
+        }
+        if (selectedConnection) {
+            jsPlumbInstance.deleteConnection(selectedConnection);
+            selectedConnection = null;
         }
     }
 });
@@ -477,7 +480,7 @@ function resizeHandleMouseMove(e) {
     }
     if (label) {
         const minDim = Math.min(newWidth, newHeight);
-        label.style.fontSize = Math.max(10, Math.floor(minDim * 0.2)) + 'px';
+        label.style.fontSize = Math.max(12, Math.floor(minDim * 0.2)) + 'px';
     }
     Array.from(resizingNode.querySelectorAll('.resize-handle')).forEach(h => {
         positionHandle(resizingNode, h, h.dataset.handle);
@@ -505,9 +508,104 @@ const nodeC = createNode("nodeC", 250, 350, "fa-solid fa-star");
 
 
 // =====================
-// Icon Picker Logic
+// JsPlumb Event Binding
+// =====================
+if (jsPlumbInstance) {
+    jsPlumbInstance.bind(jsPlumb.EVENT_CONNECTION, function (info) {
+        info.connection.addOverlay({
+            type: "Label",
+            options: {
+                label: "",
+                cssClass: "connection-label-editable",
+                location: 0.5,
+                id: "editableLabel",
+            }
+        });
+    });
+    jsPlumbInstance.bind(jsPlumb.EVENT_CONNECTION_CLICK, function (connection) {
+        if (selectedConnection && selectedConnection !== connection) {
+            selectedConnection.setPaintStyle({ stroke: "#000000ff", strokeWidth: 2 });
+            selectedConnection.setHoverPaintStyle({ stroke: "#000000ff", strokeWidth: 2 });
+        }
+        connection.setPaintStyle({ stroke: "#0078d4", strokeWidth: 5 });
+        connection.setHoverPaintStyle({ stroke: "#0078d4", strokeWidth: 5 });
+        jsPlumbInstance.repaintEverything();
+        selectedConnection = connection;
+    });
+
+    let floatingLabelInput = null;
+    jsPlumbInstance.bind(jsPlumb.EVENT_CONNECTION_DBL_CLICK, function (conn, originalEvent) {
+        if (floatingLabelInput) {
+            floatingLabelInput.remove();
+            floatingLabelInput = null;
+        }
+        const mouseX = originalEvent ? originalEvent.clientX : window.innerWidth / 2;
+        const mouseY = originalEvent ? originalEvent.clientY : window.innerHeight / 2;
+        floatingLabelInput = document.createElement('input');
+        floatingLabelInput.type = 'text';
+        floatingLabelInput.value = conn.getOverlay("editableLabel")?.getLabel() || "";
+        floatingLabelInput.style.position = 'fixed';
+        floatingLabelInput.style.left = (mouseX + 10) + 'px';
+        floatingLabelInput.style.top = (mouseY + 10) + 'px';
+        floatingLabelInput.style.zIndex = 10000;
+        floatingLabelInput.style.fontSize = '16px';
+        floatingLabelInput.style.padding = '4px 8px';
+        floatingLabelInput.style.border = '2px solid #0078d4';
+        floatingLabelInput.style.borderRadius = '4px';
+        floatingLabelInput.style.background = '#fff';
+        floatingLabelInput.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        document.body.appendChild(floatingLabelInput);
+        floatingLabelInput.focus();
+        function saveLabel() {
+            const overlay = conn.getOverlay("editableLabel");
+            if (overlay) overlay.setLabel(floatingLabelInput.value);
+            floatingLabelInput.remove();
+            floatingLabelInput = null;
+        }
+        floatingLabelInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                saveLabel();
+            }
+            if (e.key === 'Escape') {
+                floatingLabelInput.remove();
+                floatingLabelInput = null;
+            }
+        });
+        floatingLabelInput.addEventListener('blur', saveLabel);
+    });
+    jsPlumbInstance.bind(jsPlumb.EVENT_CLICK, function (info) {
+    });
+}
+
+document.addEventListener('mousedown', function(e) {
+    if (selectedConnection) {
+        let isConnection = false;
+        if (e.target && e.target.tagName) {
+            isConnection = e.target.tagName.toLowerCase() === 'path' && e.target.classList.contains('jtk-connector');
+        }
+        if (!isConnection) {
+            selectedConnection.setPaintStyle({ stroke: "#000000ff", strokeWidth: 2 });
+            selectedConnection.setHoverPaintStyle({ stroke: "#000000ff", strokeWidth: 2 });
+            selectedConnection = null;
+            jsPlumbInstance.repaintEverything();
+        }
+    }
+});
+
+
+// =====================
+// Add Node Logic
 // =====================
 const addNodeBtn = document.querySelector('.toolbar-left .toolbar-button[title="Add Node"]');
+
+addNodeBtn.addEventListener('click', () => {
+    createNode('node' + Date.now(), 200, 200, "");
+});
+
+// =====================
+// Icon Picker Logic
+// =====================
+const addIconNodeBtn = document.querySelector('.toolbar-left .toolbar-button[title="Add Icon Node"]');
 const iconPickerModal = document.getElementById('icon-picker-modal');
 const iconPickerGrid = document.getElementById('icon-picker-grid');
 const iconPickerCancel = document.getElementById('icon-picker-cancel');
@@ -586,8 +684,8 @@ function renderIconPickerGrid(filter = "") {
     }
 }
 
-if (addNodeBtn && iconPickerModal) {
-    addNodeBtn.addEventListener('click', () => {
+if (addIconNodeBtn && iconPickerModal) {
+    addIconNodeBtn.addEventListener('click', () => {
         iconPickerModal.style.display = 'flex';
         renderIconPickerGrid("");
         if (iconSearchInput) iconSearchInput.value = "";
