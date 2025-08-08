@@ -9,9 +9,6 @@
         body {
             margin: 0;
         }
-        .small-label {
-            font-size: 10px;
-        }
         .toolbar-top {
             position: fixed;
             top: 0;
@@ -53,19 +50,20 @@
             padding: 16px;
         }
     </style>
-    <!-- <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script> -->
-    <script src="static/jsplumb.min.js"></script>
+    <link rel="stylesheet" href="static/fontawesome/css/all.min.css">
+    <script src="static/jsplumb/jsplumb.browser-ui.umd.js"></script>
 </head>
 
-<body>
+<body style="background-color: #555;">
     <div class="toolbar-top">
         <button class="toolbar-button" title="New">&#x1F4C4;</button>
         <button class="toolbar-button" title="Save">&#x1F4BE;</button>
         <button class="toolbar-button" title="Settings">&#9881;</button>
         <span style="margin-left:16px; font-weight:bold;">flowslate</span>
         <div style="margin-left:auto; display:flex; gap:4px;">
-            <button class="toolbar-button" id="zoom-out" title="Zoom Out">&#x2212;</button>
-            <button class="toolbar-button" id="zoom-in" title="Zoom In">&#x2b;</button>
+            <button class="toolbar-button" id="zoom-out" title="Zoom Out"><i class="fas fa-minus"></i></button>
+            <button class="toolbar-button" id="zoom-in" title="Zoom In"><i class="fas fa-plus"></i></button>
+            <button class="toolbar-button" id="zoom-reset" title="Reset Zoom"><i class="fas fa-expand"></i></button>
         </div>
     </div>
     <div class="toolbar-left">
@@ -73,8 +71,19 @@
         <button class="toolbar-button" title="Move">&#x2194;</button>
         <button class="toolbar-button" title="Add Node">&#x2795;</button>
     </div>
-    <div class="main-content">
-        <div id="canvas" style="width:100%;height:100%;position:relative;cursor:pointer;" ></div>
+    <div id="main-content" class="main-content">
+        <div id="canvas" class="canvas-resizeable" style="width:90vw;height:90vh;position:relative;background-color:#fff;"></div>
+        <!-- Advanced Searchable Icon Picker Modal -->
+        <div id="icon-picker-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.2);z-index:2000;align-items:center;justify-content:center;">
+            <div style="background:#fff;padding:24px 32px 16px 32px;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:12px;min-width:340px;max-width:480px;max-height:80vh;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input id="icon-search-input" type="text" placeholder="Search icons..." style="flex:1;padding:8px 12px;font-size:1em;border:1px solid #ccc;border-radius:4px;" />
+                    <button id="icon-picker-cancel" style="font-size:1em;padding:8px 16px;">Cancel</button>
+                </div>
+                <div id="icon-picker-count" style="font-size:0.95em;color:#555;margin:0 0 4px 2px;"></div>
+                <div id="icon-picker-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:12px;overflow-y:auto;max-height:48vh;padding:8px 0 0 0;"></div>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
