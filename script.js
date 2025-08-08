@@ -147,7 +147,7 @@ function createNode(id, x, y, iconClass) {
         node.classList.add('selected-diagram-node');
     }
     function hideSelection() {
-        node.style.outline = 'none';
+        node.style.outline = "1.5px solid #0078d4";
         removeResizeHandles(node);
         node.classList.remove('selected-diagram-node');
     }
@@ -158,15 +158,21 @@ function createNode(id, x, y, iconClass) {
     node.style.position = "absolute";
     node.style.left = x + "px";
     node.style.top = y + "px";
-    node.style.width = "60px";
-    node.style.height = "60px";
-    node.style.outline = "none";
+    node.style.minWidth = "60px";
+    node.style.minHeight = "60px";
+    node.style.boxSizing = "border-box";
+    node.style.padding = "5px";
+    node.style.width = "auto";
+    node.style.height = "auto";
+    node.style.outline = "1.5px solid #0078d4";
+    node.style.fontSize = "18px";
     node.style.display = "flex";
+    node.style.flexDirection = "column";
     node.style.alignItems = "center";
     node.style.justifyContent = "center";
     node.style.cursor = "move";
-    node.style.border = "1px solid #0078d4";
     node.style.background = "#transparent";
+
 
     const icon = document.createElement("i");
     icon.className = iconClass;
@@ -174,12 +180,59 @@ function createNode(id, x, y, iconClass) {
     icon.style.color = "#000000ff";
     node.appendChild(icon);
 
+    // Add text label below the icon
+    const label = document.createElement("div");
+    label.className = "diagram-node-label";
+    label.textContent = id;
+    label.style.fontSize = "12px";
+    label.style.color = "#333";
+    label.style.marginTop = "4px";
+    label.style.width = "100%";
+    label.style.textAlign = "center";
+    label.style.wordBreak = "break-word";
+    label.style.whiteSpace = "normal";
+    label.style.overflowWrap = "break-word";
+    label.style.position = "static";
+    label.style.bottom = "unset";
+    label.style.left = "unset";
+
+    node.appendChild(label);
+
+    label.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        node.style.outline = "1.5px solid #0078d4";
+        removeResizeHandles(node);
+        node.classList.remove('selected-diagram-node');
+        label.contentEditable = "true";
+        label.focus();
+        label.style.outline = "1px dashed #0078d4";
+        if (document.createRange && window.getSelection) {
+            const range = document.createRange();
+            range.selectNodeContents(label);
+            range.collapse(false);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    });
+
+    label.addEventListener('blur', function() {
+        label.contentEditable = "false";
+        label.style.outline = "none";
+    });
+    label.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            label.blur();
+        }
+    });
+
     container.appendChild(node);
     jsPlumbInstance.manage(node);
 
     node.addEventListener('click', function (e) {
         document.querySelectorAll('.diagram-node').forEach(n => {
-            n.style.outline = 'none';
+            n.style.outline = "1.5px solid #0078d4";
             removeResizeHandles(n);
             n.classList.remove('selected-diagram-node');
         });
@@ -190,7 +243,7 @@ function createNode(id, x, y, iconClass) {
     if (!window._diagramNodeBorderListener) {
         document.addEventListener('click', function () {
             document.querySelectorAll('.diagram-node').forEach(n => {
-                n.style.outline = 'none';
+                n.style.outline = "1.5px solid #0078d4";
                 removeResizeHandles(n);
                 n.classList.remove('selected-diagram-node');
             });
@@ -300,16 +353,21 @@ function positionHandle(node, handle, pos) {
     const w = node.offsetWidth;
     const h = node.offsetHeight;
     const s = HANDLE_SIZE;
+    let outlineWidth = 0;
+    if (node.style.outline) {
+        const match = node.style.outline.match(/([\d.]+)px/);
+        if (match) outlineWidth = parseFloat(match[1]);
+    }
     let left = 0, top = 0;
     switch (pos) {
-        case 'nw': left = -s/2; top = -s/2; break;
-        case 'n':  left = w/2 - s/2; top = -s/2; break;
-        case 'ne': left = w - s/2; top = -s/2; break;
-        case 'e':  left = w - s/2; top = h/2 - s/2; break;
-        case 'se': left = w - s/2; top = h - s/2; break;
-        case 's':  left = w/2 - s/2; top = h - s/2; break;
-        case 'sw': left = -s/2; top = h - s/2; break;
-        case 'w':  left = -s/2; top = h/2 - s/2; break;
+        case 'nw': left = -s/2 - outlineWidth; top = -s/2 - outlineWidth; break;
+        case 'n':  left = w/2 - s/2; top = -s/2 - outlineWidth; break;
+        case 'ne': left = w - s/2 + outlineWidth; top = -s/2 - outlineWidth; break;
+        case 'e':  left = w - s/2 + outlineWidth; top = h/2 - s/2; break;
+        case 'se': left = w - s/2 + outlineWidth; top = h - s/2 + outlineWidth; break;
+        case 's':  left = w/2 - s/2; top = h - s/2 + outlineWidth; break;
+        case 'sw': left = -s/2 - outlineWidth; top = h - s/2 + outlineWidth; break;
+        case 'w':  left = -s/2 - outlineWidth; top = h/2 - s/2; break;
     }
     handle.style.left = left + 'px';
     handle.style.top = top + 'px';
@@ -341,6 +399,11 @@ function resizeHandleMouseMove(e) {
     if (!resizingNode || !resizeStart) return;
     let dx = (e.clientX - resizeStart.mouseX) / (resizeStart.zoom || 1);
     let dy = (e.clientY - resizeStart.mouseY) / (resizeStart.zoom || 1);
+
+    let w = 10, h = 10;
+    dx = Math.round(dx / w) * w;
+    dy = Math.round(dy / h) * h;
+
     let newLeft = resizeStart.left;
     let newTop = resizeStart.top;
     let newWidth = resizeStart.width;
@@ -381,7 +444,7 @@ function resizeHandleMouseMove(e) {
             newWidth -= dx;
             break;
     }
-    const MIN_SIZE = 30;
+    const MIN_SIZE = 60;
     let minLeft = 0;
     let minTop = 0;
     const parent = resizingNode.parentElement;
@@ -406,6 +469,16 @@ function resizeHandleMouseMove(e) {
     resizingNode.style.top = newTop + 'px';
     resizingNode.style.width = newWidth + 'px';
     resizingNode.style.height = newHeight + 'px';
+    const icon = resizingNode.querySelector('i');
+    const label = resizingNode.querySelector('.diagram-node-label');
+    if (icon) {
+        const minDim = Math.min(newWidth, newHeight);
+        icon.style.fontSize = Math.max(16, Math.floor(minDim * 0.6)) + 'px';
+    }
+    if (label) {
+        const minDim = Math.min(newWidth, newHeight);
+        label.style.fontSize = Math.max(10, Math.floor(minDim * 0.2)) + 'px';
+    }
     Array.from(resizingNode.querySelectorAll('.resize-handle')).forEach(h => {
         positionHandle(resizingNode, h, h.dataset.handle);
     });
